@@ -15,6 +15,12 @@ using PowerPlannerUWP.TileHelpers;
 using Vx.Uwp;
 using Vx.Components.OnlyForNativeLibraries;
 using PowerPlannerAppDataLibrary.Components;
+using System.Linq;
+using Windows.Storage.Pickers;
+using Windows.Storage;
+using PowerPlannerAppDataLibrary.Importers;
+using PowerPlannerAppDataLibrary.DataLayer;
+using PowerPlannerAppDataLibrary.DataLayer.DataItems;
 
 // The Blank Page item template is documented at http://go.microsoft.com/fwlink/?LinkId=234238
 
@@ -258,5 +264,44 @@ namespace PowerPlannerUWP.Views
                 TelemetryExtension.Current?.TrackException(ex);
             }
         }
+
+        private async void OnImportFromCunyClick(object sender, Windows.UI.Xaml.RoutedEventArgs e)
+        {
+    var picker = new FileOpenPicker
+    {
+        SuggestedStartLocation = PickerLocationId.DocumentsLibrary,
+        ViewMode = PickerViewMode.List
+    };
+    picker.FileTypeFilter.Add(".json");
+    picker.FileTypeFilter.Add(".csv"); // If you want to support CSV later
+
+    StorageFile file = await picker.PickSingleFileAsync();
+    if (file == null) return;
+
+    var text = await FileIO.ReadTextAsync(file);
+
+    // Parse JSON now; CSV mapping can be added later
+    var classes = CunyImporter.ImportFromCunyJson(text).ToList();
+    if (classes.Count == 0) return;
+
+    // Insert into the current semester
+    var account = AccountsManager.Instance?.CurrentAccount;
+    var currentSemester = account?.GetCurrentSemester(); // If there isn't a helper, get active semester via Navigation/Selection utilities in the repo:contentReference[oaicite:11]{index=11}.
+
+    if (currentSemester == null)
+    {
+        // You can show a dialog asking to create/select a semester
+        return;
+    }
+
+    foreach (var c in classes)
+    {
+        currentSemester.AddChild(c);
+    }
+
+    // Persist/sync; the repo uses AccountsManager/RoamingHelper for saving:contentReference[oaicite:12]{index=12}.
+    await AccountsManager.Instance.SaveAsync();
+    }
+
     }
 }

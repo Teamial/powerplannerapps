@@ -223,6 +223,11 @@
 
                         </Button>
 
+                        <!-- Import from CUNY button -->
+                        <Button Content="Import from CUNY"
+                            Click="OnImportFromCunyClick"
+                            Margin="8,0,0,0"
+                        />
 
                         <Button
                                 x:Name="tileGrades"
